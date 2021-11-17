@@ -1,5 +1,3 @@
-using System;
-using System.Numerics;
 using UnityEngine;
 using Quaternion = UnityEngine.Quaternion;
 using Vector3 = UnityEngine.Vector3;
@@ -80,7 +78,7 @@ public class PlayerController : MonoBehaviour
 			}
 		}
 		
-		Collider[] colliders = Physics.OverlapCapsule(p1, p2, _capsule.radius + 0.1f);
+		Collider[] colliders = Physics.OverlapCapsule(p1, p2, _capsule.radius);
 
 		if (colliders.Length > 1)
 		{
@@ -107,8 +105,12 @@ public class PlayerController : MonoBehaviour
 	{
 		Vector3 mouseDelta = new Vector3(Input.GetAxis("Mouse X"), Input.GetAxis("Mouse Y"));
 		_accumulatedMouseDelta += mouseDelta * (Time.deltaTime * sensitivityScale);
+
+		if (_accumulatedMouseDelta.x < 360f)
+			_accumulatedMouseDelta.x += 360f;
+		else if (_accumulatedMouseDelta.x > 360f)
+			_accumulatedMouseDelta.x -= 360f;
 		
-		_accumulatedMouseDelta.x %= 360f;
 		_accumulatedMouseDelta.y = Mathf.Clamp(_accumulatedMouseDelta.y, minTilt, maxTilt);
 		_cameraTransform.rotation = Quaternion.AngleAxis(_accumulatedMouseDelta.x, Vector3.up) * Quaternion.AngleAxis(-_accumulatedMouseDelta.y, Vector3.right);
 		_tf.rotation = Quaternion.AngleAxis(_accumulatedMouseDelta.x, Vector3.up);
