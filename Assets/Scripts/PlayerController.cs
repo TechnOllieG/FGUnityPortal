@@ -15,7 +15,9 @@ public class PlayerController : MonoBehaviour
 	public float minTilt = -90f;
 	public float maxTilt = 90f;
 
-	private Vector3 _accumulatedMouseDelta;
+	[Header("Debug")]
+	
+	[SerializeField] private Vector3 _accumulatedMouseDelta;
 	private Transform _cameraTransform;
 	private Vector3 velocity;
 	private Transform _tf;
@@ -59,7 +61,7 @@ public class PlayerController : MonoBehaviour
 		for(int i = 0; i < movementIterativeDepth; i++)
 		{
 			float maxDistance = deltaToMove.magnitude;
-			bool blockingHit = Physics.CapsuleCast(p1, p2, _capsule.radius, deltaToMove.normalized, out RaycastHit hit, maxDistance);
+			bool blockingHit = Physics.CapsuleCast(p1, p2, _capsule.radius, deltaToMove.normalized, out RaycastHit hit, maxDistance, Physics.DefaultRaycastLayers, QueryTriggerInteraction.Ignore);
 			float time = Mathf.InverseLerp(0f, maxDistance, hit.distance);
 		
 			Vector3 currentDelta = deltaToMove * (blockingHit ? time : 1f);
@@ -78,7 +80,7 @@ public class PlayerController : MonoBehaviour
 			}
 		}
 		
-		Collider[] colliders = Physics.OverlapCapsule(p1, p2, _capsule.radius);
+		Collider[] colliders = Physics.OverlapCapsule(p1, p2, _capsule.radius, Physics.AllLayers, QueryTriggerInteraction.Ignore);
 
 		if (colliders.Length > 1)
 		{
@@ -101,16 +103,18 @@ public class PlayerController : MonoBehaviour
 		return Physics.Raycast(pos, Vector3.down, _capsule.height * 0.5f + 0.0001f);
 	}
 
-	private void LateUpdate()
+	private void Update()
 	{
 		Vector3 mouseDelta = new Vector3(Input.GetAxis("Mouse X"), Input.GetAxis("Mouse Y"));
 		_accumulatedMouseDelta += mouseDelta * (Time.deltaTime * sensitivityScale);
-
-		if (_accumulatedMouseDelta.x < 360f)
-			_accumulatedMouseDelta.x += 360f;
-		else if (_accumulatedMouseDelta.x > 360f)
-			_accumulatedMouseDelta.x -= 360f;
 		
+		if (_accumulatedMouseDelta.x < 0f) {
+			_accumulatedMouseDelta.x += 360f;
+		}
+		else if (_accumulatedMouseDelta.x >= 360f) {
+			_accumulatedMouseDelta.x -= 360f;
+		}
+
 		_accumulatedMouseDelta.y = Mathf.Clamp(_accumulatedMouseDelta.y, minTilt, maxTilt);
 		_cameraTransform.rotation = Quaternion.AngleAxis(_accumulatedMouseDelta.x, Vector3.up) * Quaternion.AngleAxis(-_accumulatedMouseDelta.y, Vector3.right);
 		_tf.rotation = Quaternion.AngleAxis(_accumulatedMouseDelta.x, Vector3.up);
