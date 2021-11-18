@@ -1,11 +1,16 @@
 ﻿using System;
 using UnityEngine;
 using System.Collections.Generic;
+using System.Linq;
 
 public class Portal : MonoBehaviour
 {
 	public Portal otherPortal;
 	public Vector3 portalScale = new Vector3(3f, 3f, 0.01f);
+	public bool usePortalEdgeColliders = true;
+	public float portalEdgeColliderWidth = 0.01f;
+
+	public List<BoxCollider> portalEdgeColliders = new List<BoxCollider>();
 	
 	public MeshRenderer PortalSurface { get; private set; }
 	
@@ -24,6 +29,46 @@ public class Portal : MonoBehaviour
 	{
 		GetComponent<BoxCollider>().size = portalScale;
 		GetComponentInChildren<MeshRenderer>().transform.localScale = portalScale;
+		
+		if (portalEdgeColliders.Count != 4)
+		{
+			List<BoxCollider> colliders = GetComponents<BoxCollider>().ToList();
+			for (int i = 0; i < colliders.Count; i++)
+			{
+				if (colliders[i].isTrigger)
+				{
+					colliders.RemoveAt(i);
+					--i;
+				}
+			}
+
+			if (colliders.Count == 4)
+				portalEdgeColliders = colliders;
+			else
+				return;
+		}
+
+		if (usePortalEdgeColliders)
+		{
+			Vector2Int[] directions = new[] {new Vector2Int(1, 0), new Vector2Int(-1, 0), new Vector2Int(0, 1), new Vector2Int(0, -1)};
+			for(int i = 0; i < portalEdgeColliders.Count; i++)
+			{
+				portalEdgeColliders[i].enabled = true;
+				portalEdgeColliders[i].center = new Vector3(directions[i].x * portalScale.x * 0.5f, directions[i].y * portalScale.y * 0.5f, 0f);
+				portalEdgeColliders[i].size =
+					new Vector3(
+						directions[i].x == 0 ? portalScale.x : portalEdgeColliderWidth,
+						directions[i].y == 0 ? portalScale.y : portalEdgeColliderWidth, 
+						portalEdgeColliderWidth);
+			}
+		}
+		else
+		{
+			for (int i = 0; i < portalEdgeColliders.Count; i++)
+			{
+				portalEdgeColliders[i].enabled = false;
+			}
+		}
 	}
 
 	private void Awake()
@@ -114,7 +159,7 @@ public class Portal : MonoBehaviour
 			{
 				Matrix4x4 travellerNewWorldMatrix = _otherPortalTransform.localToWorldMatrix * _tf.worldToLocalMatrix *
 				               travellerTransform.localToWorldMatrix;
-				traveller.Teleport(otherPortal, travellerNewWorldMatrix.GetColumn(3), travellerNewWorldMatrix.rotation);
+				traveller.Teleport(this, otherPortal, travellerNewWorldMatrix.GetColumn(3), travellerNewWorldMatrix.rotation);
 				_trackedTravellers.Remove(traveller);
 				traveller.ResetTravelling();
 				--i;

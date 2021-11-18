@@ -1,6 +1,5 @@
 ﻿using System.Collections;
 using UnityEngine;
-using UnityEngine.UIElements;
 
 public class PortalTraveller : MonoBehaviour
 {
@@ -14,6 +13,7 @@ public class PortalTraveller : MonoBehaviour
 	private Matrix4x4 _currentPortalWorldToLocal;
 	private Matrix4x4 _otherPortalLocalToWorld;
 	private Transform _tf;
+	private Rigidbody _rb;
 
 	[Header("Debug")]
 	
@@ -22,29 +22,35 @@ public class PortalTraveller : MonoBehaviour
 	private void Awake()
 	{
 		_tf = transform;
+		_rb = GetComponent<Rigidbody>();
 	}
 
-	public void Teleport(Portal destinationPortal, Vector3 pos, Quaternion rotation)
+	public void Teleport(Portal currentPortal, Portal destinationPortal, Vector3 pos, Quaternion rotation)
 	{
 		if (teleportOnFixedUpdate)
 		{
-			StartCoroutine(TeleportRoutine(destinationPortal, pos, rotation));
+			StartCoroutine(TeleportRoutine(currentPortal, destinationPortal, pos, rotation));
 			return;
 		}
-		TravelToPortal(destinationPortal, pos, rotation);
+		TravelToPortal(currentPortal, destinationPortal, pos, rotation);
 	}
 
-	private IEnumerator TeleportRoutine(Portal destinationPortal, Vector3 pos, Quaternion rotation)
+	private IEnumerator TeleportRoutine(Portal currentPortal, Portal destinationPortal, Vector3 pos, Quaternion rotation)
 	{
 		yield return new WaitForFixedUpdate();
-		TravelToPortal(destinationPortal, pos, rotation);
+		TravelToPortal(currentPortal, destinationPortal, pos, rotation);
 	}
 
-	private void TravelToPortal(Portal destinationPortal, Vector3 pos, Quaternion rotation)
+	private void TravelToPortal(Portal currentPortal, Portal destinationPortal, Vector3 pos, Quaternion rotation)
 	{
 		_tf.position = pos;
 		_tf.rotation = rotation;
 		destinationPortal.TravelToPortal(this);
+		if (_rb)
+		{
+			Matrix4x4 transformMatrix = destinationPortal.transform.localToWorldMatrix * currentPortal.transform.worldToLocalMatrix;
+			_rb.velocity = transformMatrix.MultiplyVector(_rb.velocity);
+		}
 	}
 
 	public void SetTravelling(Matrix4x4 currentPortalWorldToLocal, Matrix4x4 otherPortalLocalToWorld, float dot)
