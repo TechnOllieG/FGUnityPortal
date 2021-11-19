@@ -1,19 +1,18 @@
-﻿using System.Collections;
-using UnityEngine;
+﻿using UnityEngine;
 
 public class PortalTraveller : MonoBehaviour
 {
 	public bool scalePortalToProtectCameraFromClipping = false;
 	[Tooltip("The camera that will be protected from clipping when passing through the portal, if null it will choose main camera")]
 	public Camera cameraToProtect = null;
-	public bool teleportOnFixedUpdate = false;
-	
+
 	public bool CurrentlyTravelling { get; private set; } = false;
 	
 	private Matrix4x4 _currentPortalWorldToLocal;
 	private Matrix4x4 _otherPortalLocalToWorld;
 	private Transform _tf;
 	private Rigidbody _rb;
+	private PlayerController _playerController;
 
 	[Header("Debug")]
 	
@@ -23,33 +22,25 @@ public class PortalTraveller : MonoBehaviour
 	{
 		_tf = transform;
 		_rb = GetComponent<Rigidbody>();
+		_playerController = GetComponent<PlayerController>();
 	}
 
 	public void Teleport(Portal currentPortal, Portal destinationPortal, Vector3 pos, Quaternion rotation)
 	{
-		if (teleportOnFixedUpdate)
-		{
-			StartCoroutine(TeleportRoutine(currentPortal, destinationPortal, pos, rotation));
-			return;
-		}
-		TravelToPortal(currentPortal, destinationPortal, pos, rotation);
-	}
-
-	private IEnumerator TeleportRoutine(Portal currentPortal, Portal destinationPortal, Vector3 pos, Quaternion rotation)
-	{
-		yield return new WaitForFixedUpdate();
-		TravelToPortal(currentPortal, destinationPortal, pos, rotation);
-	}
-
-	private void TravelToPortal(Portal currentPortal, Portal destinationPortal, Vector3 pos, Quaternion rotation)
-	{
 		_tf.position = pos;
 		_tf.rotation = rotation;
+		Physics.SyncTransforms();
 		destinationPortal.TravelToPortal(this);
+		
+		Matrix4x4 transformMatrix = destinationPortal.transform.localToWorldMatrix * currentPortal.transform.worldToLocalMatrix;
 		if (_rb)
 		{
-			Matrix4x4 transformMatrix = destinationPortal.transform.localToWorldMatrix * currentPortal.transform.worldToLocalMatrix;
 			_rb.velocity = transformMatrix.MultiplyVector(_rb.velocity);
+		}
+
+		if (_playerController)
+		{
+			_playerController.velocity = transformMatrix.MultiplyVector(_playerController.velocity);
 		}
 	}
 
@@ -80,5 +71,10 @@ public class PortalTraveller : MonoBehaviour
 		rotation = m.rotation;
 
 		return true;
+	}
+
+	public bool IsPlayer()
+	{
+		return _playerController;
 	}
 }

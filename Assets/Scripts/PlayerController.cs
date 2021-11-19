@@ -9,17 +9,18 @@ public class PlayerController : MonoBehaviour
 	public float jumpImpulse;
 	public float gravity;
 	public int movementIterativeDepth = 3;
+	public float rotationalUprightSpeed = 20f;
 	
 	public bool lockMouse = true;
 	public float sensitivityScale = 1f;
 	public float minTilt = -90f;
 	public float maxTilt = 90f;
+	public Vector3 velocity;
 
 	[Header("Debug")]
 	
 	[SerializeField] private Vector3 _accumulatedMouseDelta;
 	private Transform _cameraTransform;
-	private Vector3 velocity;
 	private Transform _tf;
 	private CapsuleCollider _capsule;
 	private Rigidbody _rb;
@@ -37,13 +38,34 @@ public class PlayerController : MonoBehaviour
 
 	private void FixedUpdate()
 	{
+		if (_tf.up.y < 1f)
+		{
+			Vector3 currentUp = _tf.up;
+			Vector3 currentForward = _tf.forward;
+			
+			Vector3 targetUp = Vector3.up;
+			Vector3 targetForward = new Vector3(currentForward.x, 0f, currentForward.z).normalized;
+
+			float t = Time.fixedDeltaTime * rotationalUprightSpeed;
+			Vector3 newForward = Vector3.Slerp(currentForward, targetForward, t);
+			Vector3 newUp = Vector3.Slerp(currentUp, targetUp, t);
+
+			if (newUp.y > 0.999f)
+			{
+				newUp = targetUp;
+				newForward = targetForward;
+			}
+
+			_tf.rotation = Quaternion.LookRotation(newForward, newUp);
+		}
+		
 		float forwardInput = (Input.GetKey(KeyCode.W) ? 1 : 0) - (Input.GetKey(KeyCode.S) ? 1 : 0);
 		float rightInput = (Input.GetKey(KeyCode.D) ? 1 : 0) - (Input.GetKey(KeyCode.A) ? 1 : 0);
 		bool jumpInput = Input.GetKey(KeyCode.Space);
 		
 		Vector3 acceleration = (forwardInput * _tf.forward + rightInput * _tf.right).normalized * accelerationSpeed;
 		velocity += (acceleration - velocity * friction) * Time.fixedDeltaTime;
-		velocity -=  _tf.up * (Time.fixedDeltaTime * gravity);
+		velocity -=  Vector3.up * (Time.fixedDeltaTime * gravity);
 		
 		if(jumpInput && IsGrounded())
 		{
@@ -80,7 +102,7 @@ public class PlayerController : MonoBehaviour
 			}
 		}
 		
-		Collider[] colliders = Physics.OverlapCapsule(p1, p2, _capsule.radius, Physics.AllLayers, QueryTriggerInteraction.Ignore);
+		Collider[] colliders = Physics.OverlapCapsule(p1, p2, _capsule.radius, Physics.DefaultRaycastLayers, QueryTriggerInteraction.Ignore);
 
 		if (colliders.Length > 1)
 		{
@@ -116,7 +138,7 @@ public class PlayerController : MonoBehaviour
 		}
 
 		_accumulatedMouseDelta.y = Mathf.Clamp(_accumulatedMouseDelta.y, minTilt, maxTilt);
-		_cameraTransform.rotation = Quaternion.AngleAxis(_accumulatedMouseDelta.x, Vector3.up) * Quaternion.AngleAxis(-_accumulatedMouseDelta.y, Vector3.right);
-		_tf.rotation = Quaternion.AngleAxis(_accumulatedMouseDelta.x, Vector3.up);
+		_cameraTransform.localRotation = /*Quaternion.AngleAxis(_accumulatedMouseDelta.x, Vector3.up) * */Quaternion.AngleAxis(-_accumulatedMouseDelta.y, Vector3.right);
+		_tf.rotation = Quaternion.AngleAxis(mouseDelta.x * Time.deltaTime * sensitivityScale, Vector3.up) * _tf.rotation;
 	}
 }

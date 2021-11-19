@@ -9,6 +9,7 @@ public class Portal : MonoBehaviour
 	public Vector3 portalScale = new Vector3(3f, 3f, 0.01f);
 	public bool usePortalEdgeColliders = true;
 	public float portalEdgeColliderWidth = 0.01f;
+	public Collider wallColliderPortalIsAttachedTo;
 
 	public List<BoxCollider> portalEdgeColliders = new List<BoxCollider>();
 	
@@ -107,6 +108,14 @@ public class Portal : MonoBehaviour
 		if (!traveller)
 			return;
 
+		if (wallColliderPortalIsAttachedTo)
+		{
+			Physics.IgnoreCollision(other, wallColliderPortalIsAttachedTo, true);
+
+			if (traveller.IsPlayer())
+				wallColliderPortalIsAttachedTo.gameObject.layer = 2;
+		}
+
 		_trackedTravellers.Add(traveller);
 		traveller.SetTravelling(_tf.worldToLocalMatrix, _otherPortalTransform.localToWorldMatrix,
 			Vector3.Dot(_tf.forward, (traveller.transform.position - _tf.position).normalized));
@@ -118,6 +127,14 @@ public class Portal : MonoBehaviour
 
 		if (!traveller)
 			return;
+
+		if (wallColliderPortalIsAttachedTo)
+		{
+			Physics.IgnoreCollision(other, wallColliderPortalIsAttachedTo, false);
+
+			if (traveller.IsPlayer())
+				wallColliderPortalIsAttachedTo.gameObject.layer = 0;
+		}
 
 		PortalSurface.transform.localScale = portalScale;
 		PortalSurface.transform.localPosition = Vector3.zero;
@@ -174,18 +191,30 @@ public class Portal : MonoBehaviour
 			return;
 
 		PortalSurface.enabled = false;
+		if(wallColliderPortalIsAttachedTo)
+			wallColliderPortalIsAttachedTo.gameObject.SetActive(false);
 		
 		Matrix4x4 m = _tf.localToWorldMatrix * _otherPortalTransform.worldToLocalMatrix * _mainCameraTf.localToWorldMatrix;
 		_portalCamTransform.SetPositionAndRotation(m.GetColumn(3), m.rotation);
 		
 		Cam.Render();
 		PortalSurface.enabled = true;
+		if(wallColliderPortalIsAttachedTo)
+			wallColliderPortalIsAttachedTo.gameObject.SetActive(true);
 	}
 
 	public void TravelToPortal(PortalTraveller traveller)
 	{
 		if(traveller.scalePortalToProtectCameraFromClipping)
 			ProtectScreenFromClipping(_mainCam);
+
+		if (wallColliderPortalIsAttachedTo)
+		{
+			Physics.IgnoreCollision(traveller.GetComponent<Collider>(), wallColliderPortalIsAttachedTo, true);
+
+			if (traveller.IsPlayer())
+				wallColliderPortalIsAttachedTo.gameObject.layer = 2;
+		}
 	}
 	
 	private bool IsVisibleFrom(Renderer rend, Camera cam)
