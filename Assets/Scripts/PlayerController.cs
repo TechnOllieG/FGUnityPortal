@@ -90,14 +90,14 @@ public class PlayerController : MonoBehaviour
 			_tf.position += currentDelta;
 			deltaToMove -= currentDelta;
 			
+			if(deltaToMove.IsNearlyZero())
+				break;
+			
 			if(blockingHit)
 			{
 				Vector3 depenetrationDelta = Vector3.Dot(hit.normal, velocity) * hit.normal;
 				velocity -= depenetrationDelta;
-			
-				if(deltaToMove.IsNearlyZero())
-					break;
-			
+
 				deltaToMove -= Vector3.Dot(deltaToMove, hit.normal) * hit.normal;
 			}
 		}
@@ -138,7 +138,7 @@ public class PlayerController : MonoBehaviour
 		}
 
 		_accumulatedMouseDelta.y = Mathf.Clamp(_accumulatedMouseDelta.y, minTilt, maxTilt);
-		_cameraTransform.localRotation = /*Quaternion.AngleAxis(_accumulatedMouseDelta.x, Vector3.up) * */Quaternion.AngleAxis(-_accumulatedMouseDelta.y, Vector3.right);
+		_cameraTransform.localRotation = Quaternion.AngleAxis(-_accumulatedMouseDelta.y, Vector3.right);
 		_tf.rotation = Quaternion.AngleAxis(mouseDelta.x * Time.deltaTime * sensitivityScale, Vector3.up) * _tf.rotation;
 	}
 }
